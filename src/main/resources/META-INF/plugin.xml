@@ -1,0 +1,45 @@
+<idea-plugin version="2">
+    <id>my.plugin</id>
+    <name>myPlugin</name>
+    <version>123.0</version>
+    <description><![CDATA[
+      Trololo
+      ]]></description>
+
+    <change-notes><![CDATA[
+      Initial Release.
+      ]]>
+    </change-notes>
+
+    <depends>Batch Scripts Support</depends>
+
+    <extensions defaultExtensionNs="com.intellij">
+        <toolWindow id="HolyProject2Dev" anchor="right" factoryClass="ui.HolyProjectToolwindowForm" icon="/icons/DB_logo.png"/>
+    </extensions>
+
+    <project-components>
+        <component>
+            <implementation-class>stub.HolyProjectProcessesManager</implementation-class>
+            <loadForDefaultProject/>
+        </component>
+    </project-components>
+
+    <actions>
+        <action id="HolyProject.ExpandAll" class="ui.ProcessesTreeAction$ExpandAll" text="Expand All"
+                icon="AllIcons.Actions.Expandall"/>
+        <action id="HolyProject.CollapseAll" class="ui.ProcessesTreeAction$CollapseAll" text="Collapse All"
+                icon="AllIcons.Actions.Collapseall"/>
+
+        <action class="actions.RefreshProcesses" id="HolyProject.RefreshProcesses" icon="AllIcons.Actions.Refresh"
+                text="Refresh HolyProjectProcesses status" description="Refresh HolyProjectProcesses status"/>
+        <action class="actions.RecreateProcesses" id="HolyProject.RecreateProcesses" icon="AllIcons.ToolbarDecorator.Import"
+                text="Recreate Processes List" description="Recreate Processes List"/>
+        <group id="HolyProject.ProcessesToolbar" icon="/icons/partition_logo.png">
+            <reference id="HolyProject.RefreshProcesses"/>
+            <reference id="HolyProject.RecreateProcesses"/>
+            <separator/>
+            <reference id="HolyProject.ExpandAll"/>
+            <reference id="HolyProject.CollapseAll"/>
+        </group>
+    </actions>
+</idea-plugin>
