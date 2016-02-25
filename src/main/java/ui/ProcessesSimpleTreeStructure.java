@@ -1,21 +1,48 @@
 package ui;
 
+import com.intellij.ide.util.treeView.IndexComparator;
+import com.intellij.openapi.project.Project;
+import com.intellij.openapi.util.Disposer;
 import com.intellij.ui.treeStructure.SimpleNode;
 import com.intellij.ui.treeStructure.SimpleTree;
+import com.intellij.ui.treeStructure.SimpleTreeBuilder;
 import com.intellij.ui.treeStructure.SimpleTreeStructure;
-import domain.processes.MyProcess;
 import domain.Action;
+import domain.processes.MyProcess;
 import stub.HolyProjectProcessesManager;
 
+import javax.swing.JTree;
+import javax.swing.tree.DefaultTreeModel;
 import java.awt.event.InputEvent;
 import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.List;
 
 public class ProcessesSimpleTreeStructure extends SimpleTreeStructure {
+    private Project project;
     private final RootNode myRoot;
+    private final SimpleTreeBuilder myTreeBuilder;
 
-    public ProcessesSimpleTreeStructure(HolyProjectProcessesManager processesManager) {
-        this.myRoot = new RootNode(processesManager);
+
+    public ProcessesSimpleTreeStructure(Project project, JTree tree) {
+        this.myRoot = new RootNode();
+        this.project = project;
+        myTreeBuilder = new SimpleTreeBuilder(tree, (DefaultTreeModel) tree.getModel(), this, new Comparator<SimpleNode>() {
+            @Override
+            public int compare(SimpleNode o1, SimpleNode o2) {
+                if(o1 instanceof ProcessNode && o2 instanceof ProcessNode)
+                   return ((ProcessNode) o1).getProcess().getName().compareTo(((ProcessNode) o2).getProcess().getName());
+                else
+                    return IndexComparator.INSTANCE.compare(o1, o2);
+            }
+        });
+        Disposer.register(project, myTreeBuilder);
+        myTreeBuilder.initRoot();
+        myTreeBuilder.expand(myRoot, null);
+    }
+
+    public void updateFromRoot(){
+        myTreeBuilder.addSubtreeToUpdateByElement(myRoot);
     }
 
     @Override
@@ -24,67 +51,78 @@ public class ProcessesSimpleTreeStructure extends SimpleTreeStructure {
     }
 
     public class RootNode extends SimpleNode {
-        private final HolyProjectProcessesManager processesManager;
 
-        public RootNode(HolyProjectProcessesManager processesManager) {
-            this.processesManager = processesManager;
+        public RootNode() {
+            super();
         }
 
         @Override
         public SimpleNode[] getChildren() {
             List<SimpleNode> simpleNodes = new ArrayList<>();
-            for (MyProcess process : processesManager.getProcesses()){
-                simpleNodes.add(new ProcessNode(process));
+            for (MyProcess process : HolyProjectProcessesManager.getInstance(project).getProcesses()) {
+                simpleNodes.add(new ProcessNode(process, this));
             }
             return simpleNodes.toArray(new SimpleNode[simpleNodes.size()]);
         }
     }
 
-    public class ProcessNode extends SimpleNode{
+    public class ProcessNode extends SimpleNode {
         private final MyProcess process;
 
-        public ProcessNode(MyProcess process) {
+        public ProcessNode(MyProcess process, SimpleNode aParent) {
+            super(project, aParent);
             this.process = process;
-            getNodeName(process);
             setIcon(process.getIcon());
-            myColor = process.getColor();
+            updateNodeName(process);
         }
 
-        private void getNodeName(MyProcess process) {
+        private void updateNodeName(MyProcess process) {
             myName = process.getCaption();
+        }
+
+        public MyProcess getProcess() {
+            return process;
+        }
+
+        @Override
+        protected void doUpdate() {
+            super.doUpdate();
+            updateNodeName(process);
         }
 
         @Override
         public SimpleNode[] getChildren() {
             List<ActionNode> nodes = new ArrayList<>();
-            for(Action action : process.getActions()){
-                nodes.add(new ActionNode(action, process));
+            for (Action action : process.getActions()) {
+                nodes.add(new ActionNode(action, this));
             }
             return nodes.toArray(new SimpleNode[nodes.size()]);
         }
     }
 
-    public class ActionNode extends SimpleNode{
+    public class ActionNode extends SimpleNode {
         private final Action action;
-        private final MyProcess process;
 
-        public ActionNode(Action action, MyProcess process) {
+        public ActionNode(Action action, ProcessNode parent) {
+            super(parent);
             this.action = action;
-            this.process = process;
             myName = action.getName();
             setIcon(action.getIcon());
         }
 
         @Override
         public SimpleNode[] getChildren() {
-            return null;
+            return new SimpleNode[0];
         }
 
         @Override
         public void handleDoubleClickOrEnter(SimpleTree tree, InputEvent inputEvent) {
-            process.doAction(action);
+            ((ProcessNode)getParent()).getProcess().doAction(project, action, new Runnable() {
+                @Override
+                public void run() {
+                    myTreeBuilder.addSubtreeToUpdateByElement(getParent());
+                }
+            });
         }
-
-
     }
 }

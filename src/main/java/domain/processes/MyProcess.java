@@ -1,49 +1,56 @@
 package domain.processes;
 
 
-import com.intellij.notification.Notification;
-import com.intellij.notification.NotificationType;
-import com.intellij.notification.Notifications;
 import com.intellij.openapi.progress.ProgressIndicator;
 import com.intellij.openapi.progress.Task;
 import com.intellij.openapi.project.Project;
 import com.intellij.ui.JBColor;
 import domain.Action;
 import domain.Unit;
-import domain.descriptors.MyProcessDescriptor;
 import org.apache.commons.lang.exception.ExceptionUtils;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.jutils.jprocesses.JProcesses;
 import org.jutils.jprocesses.model.ProcessInfo;
-import stub.HolyProjectProcessesManager;
+import stub.Util;
 
 import javax.swing.Icon;
 import java.awt.Color;
 import java.util.List;
-import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.regex.Pattern;
 
 public abstract class MyProcess {
-    protected final Project project;
     private int id = 0;
-    private final AtomicBoolean isMocked;
-    private final AtomicBoolean running;
+    private volatile boolean isMocked;
+    private volatile boolean running;
     private Unit unit;
-    private Pattern pattern;
-    private String name;
+    private String pattern;
+    private String name = "";
+    private final MockCallbackSpike spike;
 
-    public MyProcess(Unit unit, String name, String pattern, boolean isMocked, Project project) {
+    public MyProcess(Unit unit, String name, String pattern, boolean isMocked, @Nullable MockCallbackSpike spike) {
         this.name = name;
         this.unit = unit;
-        this.project = project;
-        this.isMocked = new AtomicBoolean(isMocked);
-        this.running = new AtomicBoolean(false);
-        this.pattern = Pattern.compile(pattern);
+        this.isMocked = isMocked;
+        this.spike = spike;
+        this.running = false;
+        this.pattern = pattern;
     }
 
-    public MyProcess(MyProcessDescriptor descriptor, Project project){
-        this(descriptor.unit,descriptor.name,descriptor.pattern,descriptor.isMocked, project);
+    public void setUnit(Unit unit) {
+        this.unit = unit;
+    }
+
+    public String getPattern() {
+        return pattern;
+    }
+
+    public void setPattern(String pattern) {
+        this.pattern = pattern;
+    }
+
+    public void setName(String name) {
+        this.name = name;
     }
 
     public String getName() {
@@ -62,8 +69,6 @@ public abstract class MyProcess {
         return sb.toString();
     }
 
-    public abstract MyProcessDescriptor getDescriptor();
-
     public Unit getUnit() {
         return unit;
     }
@@ -81,19 +86,20 @@ public abstract class MyProcess {
     }
 
     public boolean isRunning() {
-        return running.get();
+        return running;
     }
 
     public void setRunning(boolean isRunning) {
-        running.set(isRunning);
+        running = isRunning;
     }
 
     public boolean isMocked() {
-        return isMocked.get();
+        return isMocked;
     }
 
     public void setMocked(boolean mocked) {
-        isMocked.set(mocked);
+        isMocked = mocked;
+        spike.postMock(mocked, this);
     }
 
     public abstract List<Action> getActions();
@@ -112,35 +118,36 @@ public abstract class MyProcess {
         return color;
     }
 
-    public void doAction(final Action action) {
+    public void doAction(@NotNull Project project, @NotNull final Action action, @Nullable final Runnable callback) {
         switch (action) {
             case START:
             case START_DEBUG:
             case START_BAT:
                 doRefresh();
                 if (isRunning()) {
-                    Notifications.Bus.notify(new Notification(HolyProjectProcessesManager.notificationsTopics, "Process is already runnng", "Process is already runnng, PID=" + getId(), NotificationType.INFORMATION));
+                    Util.notifyInfo("Process is already runnng", "PID=" + getId());
                     return;
                 }
                 try {
                     switch (action) {
                         case START:
-                            doStart();
+                            doStart(project);
                             break;
                         case START_BAT:
-                            doBatStart();
+                            doBatStart(project);
                             break;
                         case START_DEBUG:
-                            doDebugStart();
+                            doDebugStart(project);
                             break;
                         default:
                             throw new IllegalArgumentException("Unknown run action:" + action);
                     }
+                    doRefresh();
+                    if(callback !=null) {
+                        callback.run();
+                    }
                 } catch (Exception e) {
-                    Notifications.Bus.notify(new Notification(HolyProjectProcessesManager.notificationsTopics,
-                            "Application bootstrap failed with an exception",
-                            "Application bootstrap failed with an exception: " + ExceptionUtils.getFullStackTrace(e),
-                            NotificationType.ERROR));
+                    Util.notifyError("Application bootstrap failed with an exception", ExceptionUtils.getFullStackTrace(e));
                 }
                 break;
             case STOP:
@@ -148,6 +155,11 @@ public abstract class MyProcess {
                     @Override
                     public void run(@NotNull ProgressIndicator indicator) {
                         doStop(indicator);
+                        indicator.setText("Refreshing process info");
+                        doRefresh();
+                        if(callback !=null) {
+                            callback.run();
+                        }
                     }
                 }.queue();
                 break;
@@ -157,6 +169,9 @@ public abstract class MyProcess {
                     public void run(@NotNull ProgressIndicator indicator) {
                         indicator.setText("Getting process info");
                         doRefresh();
+                        if(callback !=null) {
+                            callback.run();
+                        }
                     }
                 }.queue();
                 break;
@@ -165,6 +180,9 @@ public abstract class MyProcess {
                     @Override
                     public void run(@NotNull ProgressIndicator indicator) {
                         doMock(true);
+                        if(callback !=null) {
+                            callback.run();
+                        }
                     }
                 }.queue();
                 break;
@@ -173,6 +191,9 @@ public abstract class MyProcess {
                     @Override
                     public void run(@NotNull ProgressIndicator indicator) {
                         doMock(false);
+                        if(callback !=null) {
+                            callback.run();
+                        }
                     }
                 }.queue();
                 break;
@@ -183,11 +204,11 @@ public abstract class MyProcess {
 
     public abstract Icon getIcon();
 
-    abstract void doStart() throws Exception;
+    abstract void doStart(Project project) throws Exception;
 
-    abstract void doBatStart() throws Exception;
+    abstract void doBatStart(Project project) throws Exception;
 
-    abstract void doDebugStart() throws Exception;
+    abstract void doDebugStart(Project project) throws Exception;
 
     private void doStop(ProgressIndicator indicator) {
         indicator.setIndeterminate(true);
@@ -202,11 +223,9 @@ public abstract class MyProcess {
                 e.printStackTrace();
             }
             ProcessInfo info = JProcesses.getProcess(getIntId());
-            if (info != null && pattern.matcher(info.getCommand()).matches()) {
-                Notifications.Bus.notify(new Notification(HolyProjectProcessesManager.notificationsTopics,
-                        "Process failed to stop gracefully",
-                        "Process " + name + " failed to stop gracefully",
-                        NotificationType.WARNING));
+            if (info != null && Pattern.compile(pattern).matcher(info.getCommand()).matches()) {
+                Util.notifyWarn("Process failed to stop gracefully",
+                        "Process " + name + " failed to stop gracefully");
                 JProcesses.killProcess(getIntId());
             }
         }
@@ -217,7 +236,7 @@ public abstract class MyProcess {
         if (getIntId() == 0) {
             List<ProcessInfo> infos = JProcesses.getProcessList(getExecName());
             for (ProcessInfo it : infos) {
-                if (pattern.matcher(it.getCommand()).matches()) {
+                if (Pattern.compile(pattern).matcher(it.getCommand()).matches()) {
                     info = it;
                     setId(Integer.valueOf(it.getPid()));
                     break;
@@ -238,7 +257,7 @@ public abstract class MyProcess {
     protected abstract String getExecName();
 
     private boolean isSameProcess(@Nullable ProcessInfo info) {
-        return info != null && pattern.matcher(info.getCommand()).matches();
+        return info != null && Pattern.compile(pattern).matcher(info.getCommand()).matches();
     }
 
 

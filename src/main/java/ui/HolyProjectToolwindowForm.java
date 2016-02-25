@@ -13,6 +13,7 @@ import javax.swing.JPanel;
 public class HolyProjectToolwindowForm implements ToolWindowFactory {
     private JPanel rootPanel;
 
+
     @Override
     public void createToolWindowContent(@NotNull Project project, @NotNull ToolWindow toolWindow) {
         rootPanel = new HolyProjectPanel(project);

@@ -13,14 +13,9 @@
 
     <depends>Batch Scripts Support</depends>
 
-    <extensions defaultExtensionNs="com.intellij">
-        <toolWindow id="HolyProject2Dev" anchor="right" factoryClass="ui.HolyProjectToolwindowForm" icon="/icons/DB_logo.png"/>
-    </extensions>
-
     <project-components>
         <component>
             <implementation-class>stub.HolyProjectProcessesManager</implementation-class>
-            <loadForDefaultProject/>
         </component>
     </project-components>
 

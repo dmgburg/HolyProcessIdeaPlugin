@@ -5,20 +5,15 @@ import com.intellij.execution.Executor;
 import com.intellij.execution.executors.DefaultRunExecutor;
 import com.intellij.execution.runners.ExecutionEnvironment;
 import com.intellij.execution.runners.ExecutionEnvironmentBuilder;
-import com.intellij.notification.Notification;
-import com.intellij.notification.NotificationType;
-import com.intellij.notification.Notifications;
 import com.intellij.openapi.project.Project;
 import com.intellij.openapi.util.IconLoader;
 import domain.Action;
 import domain.Unit;
-import domain.descriptors.BayMyProcessDescriptor;
-import domain.descriptors.MyProcessDescriptor;
 import org.apache.commons.lang.exception.ExceptionUtils;
 import org.intellij.lang.batch.runner.BatchConfigurationType;
 import org.intellij.lang.batch.runner.BatchRunConfiguration;
 import org.intellij.lang.batch.runner.BatchRunner;
-import stub.HolyProjectProcessesManager;
+import stub.Util;
 
 import javax.swing.Icon;
 import java.util.Arrays;
@@ -26,29 +21,21 @@ import java.util.List;
 
 public class BatMyProcess extends MyProcess {
 
-    //TODO check out ScriptRunnerUtil and stuff
-    private final String batName;
     private final static Icon myIcon = IconLoader.getIcon("/fileTypes/batch.png");
 
-    public BatMyProcess(Unit unit, String name, String pattern, boolean isMocked, String batName, Project project) {
-        super(unit, name, pattern, isMocked, project);
+    private String batName;
+
+    public BatMyProcess(Unit unit, String name, String pattern, boolean isMocked, String batName) {
+        super(unit, name, pattern, isMocked, MockCallbackSpike.DO_NOTHING);
         this.batName = batName;
     }
 
-    public  BatMyProcess(BayMyProcessDescriptor descriptor,Project project){
-        this(descriptor.unit,
-                descriptor.name,
-                descriptor.pattern,
-                descriptor.isMocked,
-                descriptor.batName,
-                project);
+    public String getBatName() {
+        return batName;
     }
 
-    @Override
-    public MyProcessDescriptor getDescriptor() {
-        MyProcessDescriptor descriptor = new BayMyProcessDescriptor();
-
-        return ;
+    public void setBatName(String batName) {
+        this.batName = batName;
     }
 
     @Override
@@ -58,10 +45,7 @@ public class BatMyProcess extends MyProcess {
 
     @Override
     public void doMock(boolean targetMocked) {
-        Notifications.Bus.notify(new Notification(HolyProjectProcessesManager.notificationsTopics,
-                "Can't Mock",
-                "You can't mock bat-only process",
-                NotificationType.ERROR));
+        Util.notifyError("Can't Mock","You can't mock bat-only process");
     }
 
     @Override
@@ -70,14 +54,12 @@ public class BatMyProcess extends MyProcess {
     }
 
     @Override
-    void doStart() throws Exception {
-        Notifications.Bus.notify(new Notification(HolyProjectProcessesManager.notificationsTopics,
-                "Cannot run this configuration as application",
-                "Actually this action should not be rendered at all, contact Platform team", NotificationType.ERROR));
+    void doStart(Project project) throws Exception {
+        Util.notifyError("Cannot run this configuration as application", "Actually this action should not be rendered at all, contact Platform team");
     }
 
     @Override
-    void doBatStart() {
+    void doBatStart(Project project) {
         BatchRunConfiguration conf =(BatchRunConfiguration) new BatchConfigurationType().getConfigurationFactories()[0].createTemplateConfiguration(project);
         conf.setScriptName(batName);
         Executor runExecutor = DefaultRunExecutor.getRunExecutorInstance();
@@ -88,16 +70,13 @@ public class BatMyProcess extends MyProcess {
         try {
             runner.execute(env);
         } catch (ExecutionException e) {
-            Notifications.Bus.notify(new Notification(HolyProjectProcessesManager.notificationsTopics,
-                    "Failed to execute process",
-                    "Failed to execute process: " + ExceptionUtils.getFullStackTrace(e),
-                    NotificationType.ERROR));
+            Util.notifyError("Failed to execute process", ExceptionUtils.getFullStackTrace(e));
         }
     }
 
     @Override
-    void doDebugStart() throws Exception {
-        doStart();
+    void doDebugStart(Project project) throws Exception {
+        doStart(project);
     }
 
     @Override

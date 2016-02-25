@@ -1,26 +1,16 @@
 package ui;
 
-import com.intellij.util.xmlb.annotations.Tag;
-import domain.processes.MyProcess;
-
+import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 
 public class ProcessesState {
-    @Tag("processesState")
-    public List<MyProcess> processes;
+    public List<String> bats;
+    public Set<String> mocked;
 
     public ProcessesState() {
-    }
-
-    public ProcessesState(List<MyProcess> processes) {
-        this.processes = processes;
-    }
-
-    public List<MyProcess> getProcesses() {
-        return processes;
-    }
-
-    public void setProcesses(List<MyProcess> processes) {
-        this.processes = processes;
+        bats = new ArrayList<>();
+        mocked = new HashSet<>();
     }
 }
