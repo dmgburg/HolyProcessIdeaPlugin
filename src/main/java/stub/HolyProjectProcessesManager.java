@@ -142,11 +142,13 @@ public class HolyProjectProcessesManager extends AbstractProjectComponent implem
                     String workDir = matcher.group(1);
                     String contextFile = properties.getProperty("hosts.localhost.processes." + processName + ".context");
                     String jvmOpts = properties.getProperty("hosts.localhost.processes." + processName + ".jvmOpts");
+                    MyProcess appProcess;
                     if (jvmOpts == null) {
-                        componentsNotFound.add(processName);
-                        continue;
+                        componentsNotFound.add(bat);
+                        appProcess = getBatProcess(processName,bat);
+                    } else {
+                        appProcess = getAppProcess(bat, processName, workDir, contextFile, jvmOpts, configurationFolder, secrets, state.mocked.contains(processName));
                     }
-                    CommonMyProcess appProcess = getAppProcess(bat, processName, workDir, contextFile, jvmOpts, configurationFolder, secrets, state.mocked.contains(processName));
                     processes.putIfAbsent(bat, appProcess);
                 }
             }
@@ -156,6 +158,7 @@ public class HolyProjectProcessesManager extends AbstractProjectComponent implem
                 for (String compName : componentsNotFound) {
                     sb.append("<br>").append(compName);
                 }
+                sb.append("<br>").append("Creating bat-only process");
                 Util.notifyInfo("Configurations Not Found", sb.toString());
             }
             panel.update();
@@ -164,8 +167,8 @@ public class HolyProjectProcessesManager extends AbstractProjectComponent implem
         }
     }
 
-    private BatMyProcess getBatProcess(String processName) {
-        return new BatMyProcess(unit1, processName, ".*" + processName + ".*", false, processName + ".bat");
+    private BatMyProcess getBatProcess(String processName,String batName) {
+        return new BatMyProcess(unit1, processName, ".*" + batName + ".*", false, batName);
     }
 
     @NotNull

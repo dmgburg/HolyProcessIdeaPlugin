@@ -34,7 +34,7 @@ public abstract class MyProcess {
         this.isMocked = isMocked;
         this.spike = spike;
         this.running = false;
-        this.pattern = pattern;
+        this.pattern = pattern.replace("\\","\\\\");
     }
 
     public void setUnit(Unit unit) {
