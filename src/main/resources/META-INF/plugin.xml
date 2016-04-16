@@ -23,13 +23,13 @@
         <action id="HolyProject.CollapseAll" class="ui.ProcessesTreeAction$CollapseAll" text="Collapse All"
                 icon="AllIcons.Actions.Collapseall"/>
 
-        <action class="actions.MyToggleAction" id="HolyProject.RefreshProcesses" icon="AllIcons.Nodes.Cvs_roots"
+        <action class="actions.MyToggleAction" id="HolyProject.MyToggleAction" icon="AllIcons.Nodes.Cvs_roots"
                 text="Refresh HolyProjectProcesses status" description="Refresh HolyProjectProcesses status"/>
-        <action class="actions.CommonAction" id="HolyProject.RecreateProcesses" icon="AllIcons.ToolbarDecorator.Import"
+        <action class="actions.CommonAction" id="HolyProject.CommonAction" icon="AllIcons.ToolbarDecorator.Import"
                 text="Recreate Processes List" description="Recreate Processes List"/>
         <group id="HolyProject.ProcessesToolbar">
-            <reference id="HolyProject.RefreshProcesses"/>
-            <reference id="HolyProject.RecreateProcesses"/>
+            <reference id="HolyProject.MyToggleAction"/>
+            <reference id="HolyProject.CommonAction"/>
             <separator/>
             <reference id="HolyProject.ExpandAll"/>
             <reference id="HolyProject.CollapseAll"/>
