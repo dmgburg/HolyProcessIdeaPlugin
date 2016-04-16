@@ -24,9 +24,9 @@
                 icon="AllIcons.Actions.Collapseall"/>
 
         <action class="actions.MyToggleAction" id="HolyProject.MyToggleAction" icon="AllIcons.Nodes.Cvs_roots"
-                text="Refresh HolyProjectProcesses status" description="Refresh HolyProjectProcesses status"/>
+                text="MyToggleAction" description="MyToggleAction"/>
         <action class="actions.CommonAction" id="HolyProject.CommonAction" icon="AllIcons.ToolbarDecorator.Import"
-                text="Recreate Processes List" description="Recreate Processes List"/>
+                text="CommonAction" description="CommonAction"/>
         <group id="HolyProject.ProcessesToolbar">
             <reference id="HolyProject.MyToggleAction"/>
             <reference id="HolyProject.CommonAction"/>
