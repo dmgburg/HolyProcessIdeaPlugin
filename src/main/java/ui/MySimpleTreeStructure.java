@@ -36,7 +36,7 @@ public class MySimpleTreeStructure extends SimpleTreeStructure {
             }
         });
         Disposer.register(project, myTreeBuilder);
-        myTreeBuilder.initRoot().getRootNode();
+        myTreeBuilder.initRoot();
         myTreeBuilder.expand(myRoot, null);
     }
 
